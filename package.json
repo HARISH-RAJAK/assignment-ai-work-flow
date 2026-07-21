@@ -1,0 +1,21 @@
+{
+  "name": "ai-task-processing-platform",
+  "version": "1.0.0",
+  "description": "Production Ready AI Task Processing Platform monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:build": "npm --prefix backend run build",
+    "backend:test": "npm --prefix backend test",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:test": "npm --prefix frontend test",
+    "docker:up": "docker-compose -f docker/docker-compose.yml up --build",
+    "docker:down": "docker-compose -f docker/docker-compose.yml down"
+  },
+  "devDependencies": {}
+}

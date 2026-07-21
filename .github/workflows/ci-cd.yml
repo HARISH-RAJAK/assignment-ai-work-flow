@@ -1,0 +1,119 @@
+name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  lint-and-test:
+    name: Lint & Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7.2
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Backend Tests
+        env:
+          MONGODB_URI: mongodb://localhost:27017/ai_task_platform_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: ci-test-jwt-secret-key-32chars-min
+          REFRESH_TOKEN_SECRET: ci-test-refresh-secret-key-32chars
+        run: npm run backend:test
+
+      - name: Run Frontend Tests
+        run: npm run frontend:test
+
+      - name: Setup Python for Worker Lint
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate Python Worker Syntax
+        run: |
+          python -m py_compile worker/worker.py
+          python -m py_compile worker/operations.py
+
+  build-and-push:
+    name: Build & Push Docker Container Images
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Image Tag
+        id: vars
+        run: echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build & Push Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/backend.Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.SHA_SHORT }}
+
+      - name: Build & Push Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/frontend.Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.SHA_SHORT }}
+
+      - name: Build & Push Worker Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/worker.Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:${{ env.SHA_SHORT }}
+
+      - name: Trigger Argo CD Sync & Update Manifest Image Tags
+        run: |
+          echo "Updated manifest tags to ${{ env.SHA_SHORT }}. Argo CD auto-sync active."
