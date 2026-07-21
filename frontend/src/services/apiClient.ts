@@ -1,8 +1,17 @@
 import axios from 'axios';
 
-// Use environment variable VITE_API_URL or fallback to production Render backend URL
+// Get base URL from environment or fallback to production backend URL
 const envApiUrl = (import.meta as any).env?.VITE_API_URL;
-const API_BASE_URL = envApiUrl || 'https://assignment-ai-work-flow.onrender.com/api';
+let rawBaseUrl = envApiUrl || 'https://assignment-ai-work-flow.onrender.com/api';
+
+// Normalize URL to ensure it ends with /api
+let API_BASE_URL = rawBaseUrl.trim();
+if (API_BASE_URL.endsWith('/')) {
+  API_BASE_URL = API_BASE_URL.slice(0, -1);
+}
+if (!API_BASE_URL.endsWith('/api')) {
+  API_BASE_URL = `${API_BASE_URL}/api`;
+}
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

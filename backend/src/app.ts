@@ -6,6 +6,8 @@ import { morganMiddleware } from './utils/morgan';
 import { apiRateLimiter } from './middlewares/rateLimiter';
 import { errorHandler } from './middlewares/errorHandler';
 import routes from './routes';
+import authRoutes from './routes/authRoutes';
+import taskRoutes from './routes/taskRoutes';
 
 const app: Application = express();
 
@@ -50,8 +52,12 @@ app.get('/health', (_req, res) => {
 // Rate Limiting
 app.use('/api', apiRateLimiter);
 
-// API Routes
+// Primary API Routes (prefixed with /api)
 app.use('/api', routes);
+
+// Fallback Routes (Direct /auth and /tasks for extra resilience)
+app.use('/auth', authRoutes);
+app.use('/tasks', taskRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
