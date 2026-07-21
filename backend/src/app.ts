@@ -16,20 +16,16 @@ app.use(
   })
 );
 
-// Enable Production CORS (Allows deployed frontend & local development)
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, postman) or match origin
-      if (!origin || config.corsOrigin === '*' || origin.includes('onrender.com') || origin.includes('localhost')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive CORS for deployed clients
-      }
-    },
-    credentials: true,
-  })
-);
+// Enable Production CORS
+const corsOptions: cors.CorsOptions = {
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Request parsing
 app.use(express.json());
@@ -38,13 +34,21 @@ app.use(express.urlencoded({ extended: true }));
 // HTTP Request Logger
 app.use(morganMiddleware);
 
-// Rate Limiting
-app.use('/api', apiRateLimiter);
+// Root & Health Check Endpoints
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    status: 'online',
+    message: 'AI Task Orchestration Platform API Engine',
+    version: '1.0.0',
+  });
+});
 
-// Health Check Endpoint
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Rate Limiting
+app.use('/api', apiRateLimiter);
 
 // API Routes
 app.use('/api', routes);

@@ -5,7 +5,8 @@ import { logger } from '../utils/logger';
 export const connectDatabase = async (): Promise<void> => {
   try {
     const conn = await mongoose.connect(config.mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000, // 30 seconds for cloud cold starts
+      connectTimeoutMS: 30000,
     });
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
