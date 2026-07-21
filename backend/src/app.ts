@@ -10,12 +10,23 @@ import routes from './routes';
 const app: Application = express();
 
 // Security HTTP headers
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
-// Enable CORS
+// Enable Production CORS (Allows deployed frontend & local development)
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, postman) or match origin
+      if (!origin || config.corsOrigin === '*' || origin.includes('onrender.com') || origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissive CORS for deployed clients
+      }
+    },
     credentials: true,
   })
 );
