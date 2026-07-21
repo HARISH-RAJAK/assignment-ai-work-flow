@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Use environment variable VITE_API_URL or fallback to production Render backend URL
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'https://assignment-ai-work-flow.onrender.com/api';
+const envApiUrl = (import.meta as any).env?.VITE_API_URL;
+const API_BASE_URL = envApiUrl || 'https://assignment-ai-work-flow.onrender.com/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
