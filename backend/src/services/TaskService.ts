@@ -3,9 +3,9 @@ import { QueueService } from './QueueService';
 import { AppError } from '../utils/appError';
 import { ITask, OperationType, IExecutionRun } from '../models/Task';
 import { executeTextOperation } from '../utils/operations';
-import { logger } from '../utils/logger';
 import { Task } from '../models/Task';
-import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../utils/logger';
+
 
 export class TaskService {
   private taskRepo: TaskRepository;
